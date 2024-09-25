@@ -3,9 +3,12 @@ title: "R Notebook"
 output: github_document
 ---
 TUTORIEL DADA2
+
+
 https://benjjneb.github.io/dada2/tutorial.html#:~:text=Here%20we%20walk%20through%20version%201.16%20of%20the%20DADA2%20pipeline
 library()
 
+1)GETTING READY
 
 Ici, j'appelle le package dada2
 Je met mon dossier "MiSeq_SOP" dans une variable "path"
@@ -42,6 +45,14 @@ sample.names_R<-sapply(strsplit(basename(fnRs),split="_"), FUN='[', 1)
 sample.names_R
 sample.names_F
 ```
+2)INSPECT READ QUALITY PROFILES
+
+```{r}
+plotQualityProfile(fnFs [c(1, 10, 20)])
+plotQualityProfile(fnRs[c(3, 9, 18)])
+```
+
+
 
 
 
