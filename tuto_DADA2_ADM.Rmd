@@ -2,12 +2,46 @@
 title: "R Notebook"
 output: github_document
 ---
-jksqgesfukqs
+TUTORIEL DADA2
+https://benjjneb.github.io/dada2/tutorial.html#:~:text=Here%20we%20walk%20through%20version%201.16%20of%20the%20DADA2%20pipeline
+library()
 
 
+Ici, j'appelle le package dada2
+Je met mon dossier "MiSeq_SOP" dans une variable "path"
+Ce qui me permet de lister les fichier contenu dans "path" et donc dans "miSeq_SOP"
+```{r}
+library(dada2); packageVersion("dada2")
+path<-"/home/rstudio/DADA2_tutorial_ADM/MiSeq_SOP"
+list.files(path)
+```
+Je stock dans les variables "fnFs" et "fnRs" respectivement l'ensemble des fichiers contenants "_R1_" et "_R2_" dans leur nom, c'est à dire les sequences forward et reverse.
+
+full.names=TRUE --> tout le chemin et pas que le nom du fichier
+pattern="xxxx"-->les fichiers dont le nom contient "xxxx"
+path-->on va chercher les fichiers dans la variable "path" (qui contient les fichiers du dossier MiSeq_SOP)
+list.files-->lister les fichiers
+sort-->par ordre alphabetique
+```{r}
+fnFs<-sort(list.files(path, pattern="_R1_", full.names=TRUE))
+fnRs<-sort(list.files(path, pattern="_R2_", full.names=TRUE))
+fnRs
+fnFs
+```
+strsplit-->separe un nom
+basename(file)-->renvoie au nom du fichier et non pas du chemin
+plit"_"--> sépare le fichier en un vecteur contenant toutes les portions de noms entre les "_"
+
+sapply()-->applique une fonction à chaque élément de la liste
+FUN='['--> applique la fonction à un vecteur
+1--> choisis le premier élément du vecteur
 
 ```{r}
-plot(cars)
+sample.names_F<-sapply(strsplit(basename(fnFs),split="_"), FUN='[', 1)
+sample.names_R<-sapply(strsplit(basename(fnRs),split="_"), FUN='[', 1)
+sample.names_R
+sample.names_F
 ```
+
 
 
