@@ -33,7 +33,7 @@ fnFs
 ```
 strsplit-->separe un nom
 basename(file)-->renvoie au nom du fichier et non pas du chemin
-plit"_"--> sépare le fichier en un vecteur contenant toutes les portions de noms entre les "_"
+split"_"--> sépare le fichier en un vecteur contenant toutes les portions de noms entre les "_"
 
 sapply()-->applique une fonction à chaque élément de la liste
 FUN='['--> applique la fonction à un vecteur
@@ -46,11 +46,43 @@ sample.names_R
 sample.names_F
 ```
 2)INSPECT READ QUALITY PROFILES
+plotQualityProfile-->fait apparaitre un graphe avec en y une heatmap de la fréquence de chaque quality score et en x la position de chaque nucléotide.
+
+On remarque que le quality score moyen (en vert) diminue au fur et à mesure car la fidélité sequançage diminue dans le temps. De plus, les séquences reverse semblent perdre en qualité plus tôt que les séquences forward.
 
 ```{r}
 plotQualityProfile(fnFs [c(1, 10, 20)])
 plotQualityProfile(fnRs[c(3, 9, 18)])
 ```
+3) FILTER AND TRIM
+file.path()-->créer un chemin de fichier
+path-->contient le dossier où se trouve les fichiers d'interet
+"filtered"-->ajoute un dossier "filtered" à ce chemin
+paste0()-->faire un collage entre le vecteur sample.names_F et le suffixe "_F_filt.fastq.gz"
+
+```{r}
+filtFs <- file.path(path, "filtered", paste0(sample.names_F, "_F_filt.fastq.gz"))
+filtRs <- file.path(path, "filtered", paste0(sample.names_R, "_R_filt.fastq.gz"))
+filtFs
+filtRs
+```
+Ici, je viens stocker dans les fichiers filtFs et filtRs mes échantillons fnFs et fnRs une fois ceux-ci filtrés et tronqués par la fonction filterAndtrim() comme ceci :
+
+trunclen=c(240,160)--> seq tronquées après 240 (forward) et 160 (reverse) nucleotides
+maxN=0--> toute seq contenant au moins une base N (ambigue) sera éliminée.
+maxEE=c(2,2)--> max expected errors quality score 2 (forward et reverse) (phred score)-->https://en.wikipedia.org/wiki/Phred_quality_score
+truncQ=2--> seq tronquée dès que Phred score est de 2
+rm.phix=TRUE-->les seq du phage PhiX sont supprimées, il est utilisé comme controle dans le sequencage (c'est une verification).
+compress=TRUE--> fichiers de sortie seront compressés en format gzip (fichier .gz)
+multithread=TRUE-->utilise plusieurs coeurs du processeur pour executer plus vite
+
+```{r}
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160),
+              maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+              compress=TRUE, multithread=TRUE)
+head(out)
+```
+
 
 
 
