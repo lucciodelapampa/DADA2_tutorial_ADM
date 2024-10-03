@@ -82,6 +82,36 @@ out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160),
               compress=TRUE, multithread=TRUE)
 head(out)
 ```
+4) LEARN THE ERRORS RATES
+
+learnErrors()-->modélise les probabilités d'erreurs.
+plotErrors-->afficher les taux d'erreurs observé à partir des données réelles (POINTS NOIRS)
+             le taux d'erreurs estimé par learnErrors()(LIGNE NOIRE)
+             nominalQ=TRUE permet d'afficher le taux d'erreurs nominal de la plateforme dada2 sans apprentissage de mes données (LIGNE ROUGE)
+             
+```{r}
+errF <- learnErrors(filtFs, multithread=TRUE)
+errR <- learnErrors(filtRs, multithread=TRUE)
+plotErrors(errF, nominalQ=TRUE)
+plotErrors(errR, nominalQ=TRUE)
+```
+5) SAMPLE INFERENCE
+
+Ici, j'applique l'algo dada à mes échantillons de bonnes qualités filtFs, avec err=errF indiquant que mon modèle d'erreur est errF.
+L'algorithme dada permet de differencier les differences de sequences dûent à des variations d'origine biologique ou à celles issue d'erreures de séquençage. (cf CM APO).
+```{r}
+dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
+dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
+dadaFs[[1]]
+```
+```{r}
+?setDadaOpt
+```
+```{r}
+help("dada-class")
+```
+
+
 
 
 
