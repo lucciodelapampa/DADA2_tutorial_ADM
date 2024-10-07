@@ -167,6 +167,7 @@ Calcul de la proportion des séquences non chimériques par rapport au total des
 sum(seqtab.nochim)/sum(seqtab)
 ```
 9) TRACK READS TROUGH THE PIPELINE
+
 ```{r}
 getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
@@ -174,6 +175,7 @@ colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "n
 rownames(track) <- sample.names
 head(track)
 ```
+zefe
 
 
 
