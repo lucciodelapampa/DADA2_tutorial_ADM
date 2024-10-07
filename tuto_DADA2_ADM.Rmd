@@ -40,12 +40,11 @@ FUN='['--> applique la fonction à un vecteur
 1--> choisis le premier élément du vecteur
 
 ```{r}
-sample.names_F<-sapply(strsplit(basename(fnFs),split="_"), FUN='[', 1)
-sample.names_R<-sapply(strsplit(basename(fnRs),split="_"), FUN='[', 1)
-sample.names_R
-sample.names_F
+sample.names<-sapply(strsplit(basename(fnFs),split="_"), FUN='[', 1)
+sample.names
 ```
 2)INSPECT READ QUALITY PROFILES
+
 plotQualityProfile-->fait apparaitre un graphe avec en y une heatmap de la fréquence de chaque quality score et en x la position de chaque nucléotide.
 
 On remarque que le quality score moyen (en vert) diminue au fur et à mesure car la fidélité sequançage diminue dans le temps. De plus, les séquences reverse semblent perdre en qualité plus tôt que les séquences forward.
@@ -55,14 +54,15 @@ plotQualityProfile(fnFs [c(1, 10, 20)])
 plotQualityProfile(fnRs[c(3, 9, 18)])
 ```
 3) FILTER AND TRIM
+
 file.path()-->créer un chemin de fichier
 path-->contient le dossier où se trouve les fichiers d'interet
 "filtered"-->ajoute un dossier "filtered" à ce chemin
 paste0()-->faire un collage entre le vecteur sample.names_F et le suffixe "_F_filt.fastq.gz"
 
 ```{r}
-filtFs <- file.path(path, "filtered", paste0(sample.names_F, "_F_filt.fastq.gz"))
-filtRs <- file.path(path, "filtered", paste0(sample.names_R, "_R_filt.fastq.gz"))
+filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 filtFs
 filtRs
 ```
@@ -110,6 +110,75 @@ dadaFs[[1]]
 ```{r}
 help("dada-class")
 ```
+6) MERGE PAIRED READS
+
+mergePairs()--> permet la fusion des forwards et reverses après le débruitage.
+il faut lui préciser dadaFs puis filtFs pour lui dire le chemin d'accès.
+
+verbose=TRUE
+
+Progrès des fusions : Le nombre de paires de séquences en cours de traitement est affiché pendant que DADA2 procède à la fusion. Cela permet de suivre la progression du processus.
+
+Résumé des fusions : Des statistiques sur le nombre total de lectures appariées, ainsi que des détails sur les fusions réussies ou échouées, sont rapportées.
+
+Informations sur les erreurs : Si des paires de séquences ne parviennent pas à fusionner, par exemple en raison d'un chevauchement insuffisant ou d'un trop grand nombre de mésappariements, ces informations seront également affichées.
+```{r}
+mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
+head(mergers[[1]])
+```
+7) CONSTRUCT SEQUENCE TABLE
+
+makeSequenceTable()--> Elle prend les résultats de la fusion des lectures (comme dans mergers) et produit une matrice dans laquelle :
+Chaque ligne correspond à un échantillon.
+Chaque colonne correspond à une séquence unique (ASV) identifiée après fusion.
+Les valeurs dans la matrice indiquent le nombre d'occurrences (abondance) de chaque séquence unique dans chaque échantillon.
+```{r}
+seqtab<-makeSequenceTable(mergers)
+dim(seqtab)
+```
+getSequences(seqtab) :
+Cette fonction extrait toutes les séquences uniques (les ASVs) de la table seqtab en tant que vecteur de chaînes de caractères. Chaque élément de ce vecteur correspond à une séquence unique détectée après débruitage et fusion des lectures.
+
+nchar() :
+Calcule la longueur de chaque séquence dans le vecteur, c'est-à-dire le nombre de nucléotides dans chaque séquence.
+
+table() :
+Crée une table de fréquence montrant combien de séquences ont une certaine longueur (nombre de nucléotides). Elle renvoie une table où :
+Chaque valeur correspond au nombre de séquences ayant une longueur donnée.
+Chaque nom de colonne correspond à une longueur spécifique.
+```{r}
+table(nchar(getSequences(seqtab)))
+```
+8) REMOVE CHIMERAS
+
+removeBimeraDenovo() :
+Identifie et retire les séquences chimériques dans la table de séquences. Les chimères se forment lorsqu'un fragment d'ADN est mal répliqué pendant la PCR, donnant une séquence hybride entre deux séquences existantes.
+
+Arguments :
+
+method="consensus" : La méthode "consensus" compare chaque séquence à d'autres séquences plus abondantes. Une séquence est considérée comme chimérique si elle peut être formée par la combinaison de deux séquences parentales.
+verbose=TRUE : Affiche des informations supplémentaires sur le processus de suppression des chimères.
+```{r}
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+dim(seqtab.nochim)
+```
+Calcul de la proportion des séquences non chimériques par rapport au total des séquences
+```{r}
+sum(seqtab.nochim)/sum(seqtab)
+```
+9) TRACK READS TROUGH THE PIPELINE
+```{r}
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+
+
+
+
+
 
 
 
