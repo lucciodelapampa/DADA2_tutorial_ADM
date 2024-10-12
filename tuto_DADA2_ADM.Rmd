@@ -66,7 +66,7 @@ filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 filtFs
 filtRs
 ```
-Ici, je viens stocker dans les fichiers filtFs et filtRs mes échantillons fnFs et fnRs une fois ceux-ci filtrés et tronqués par la fonction filterAndtrim() comme ceci :
+Ici, je viens stocker dans les fichiers filtFs et filtRs mes échantillons fnFs et fnRs une fois ceux-ci filtrés et tronqués (et filtré) par la fonction filterAndtrim() comme ceci :
 
 trunclen=c(240,160)--> seq tronquées après 240 (forward) et 160 (reverse) nucleotides
 maxN=0--> toute seq contenant au moins une base N (ambigue) sera éliminée.
@@ -166,16 +166,42 @@ Calcul de la proportion des séquences non chimériques par rapport au total des
 ```{r}
 sum(seqtab.nochim)/sum(seqtab)
 ```
-9) TRACK READS TROUGH THE PIPELINE
+9) TRACK READS THROUGH THE PIPELINE
+Je definis une fonction getN avec function(x), x sera le paramètre d'entrée.
+sun(getUniques(x))-->additionne toute les occurences des sequences uniques obtenues grâce à getUniques(x)
+On compte donc le nombre de sequences uniques.
 
 ```{r}
 getN <- function(x) sum(getUniques(x))
+```
+Création d'une matrice track qui contient une colonne pour chaque étape du pipeline, chaque ligne est un echantillon.
+
+cbind()-->combine des objets par colonne, prend plusieurs vecteurs ou matrices et les met côte à côte pour créer une nouvelle matrice avec le même nombre de lignes.
+
+sapply(dadaRs/dadaFs, getN)--> applique getN, calculant le nombre de séquences uniques pour chaque échantillon après débruitage des lectures inverses.
+
+sapply(mergers, getN)--> applique la fonction getN pour calculer le nombre de séquences uniques après la fusion des lectures. Ce vecteur indique combien de séquences uniques sont restées après l'étape de fusion.
+
+rowSums(seqtab.nochim)-->calcule la somme des séquences non chimériques pour chaque échantillon, donnant ainsi le nombre final de séquences de haute qualité.
+
+rownames(track) <- sample.names  --> attribue les noms des lignes à la matrice track en utilisant les noms des échantillons
+
+
+```{r}
 track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
 rownames(track) <- sample.names
 head(track)
 ```
-zefe
+Une bonne portion des inputs ont passés les differentes étapes de filtration, ce qui veut dire que mes paramètres de tris ne sont pas trop strictes.
+
+10) ASSIGN TAXONOMY
+
+```{r}
+taxa <- assignTaxonomy(seqtab.nochim, "/home/rstudio/tax/silva_nr_v132_train_set.fa.gz", multithread=TRUE)
+
+```
+
 
 
 
