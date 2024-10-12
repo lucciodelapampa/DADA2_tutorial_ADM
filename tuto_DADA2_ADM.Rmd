@@ -197,10 +197,65 @@ Une bonne portion des inputs ont passés les differentes étapes de filtration, 
 
 10) ASSIGN TAXONOMY
 
+
+assignTaxonomy()-->attribue une classification taxonomique à seqtab.nochim en se basant sur une base de données de référence, ici SILVA 132
 ```{r}
-taxa <- assignTaxonomy(seqtab.nochim, "/home/rstudio/tax/silva_nr_v132_train_set.fa.gz", multithread=TRUE)
+taxa <- assignTaxonomy(seqtab.nochim, "/home/rstudio/tutoDada2/silva_nr_v132_train_set.fa.gz", multithread=TRUE)
+```
+addSpecies()-->ajoute des noms d'espèces à une table de taxonomie
+```{r}
+taxa <- addSpecies(taxa, "/home/rstudio/tutoDada2/silva_species_assignment_v132.fa.gz")
+```
+taxa.print <- taxa-->crée une copie de  taxa sous le nom taxa.print. Ainsi, les modifications apportées à taxa.print n'affecteront pas taxa.
+
+rownames(taxa.print) <- NULL-->supprime les noms de ligne
+
+```{r}
+taxa.print <- taxa
+rownames(taxa.print) <- NULL
+head(taxa.print)
+```
+11) EVALUATE ACCURACY
+
+Évaluation de la précision de DADA2 sur la communauté fictive
+
+seqtab.nochim["Mock",]-->extrait les sequences associées à l'échantillon de reference Mock dans seqtab.nochim
+, indique que je prend toutes les colonnes (toutes les séquences associées à cet échantillon).
+```{r}
+unqs.mock <- seqtab.nochim["Mock_F_filt.fastq.gz",]
+```
+
+Trie les séquences de l'échantillon "Mock" par ordre décroissant de leur abondance, après avoir filtré les séquences avec une abondance supérieure à zéro : 
+
+unqs.mock[unqs.mock > 0]-->sélectionne uniquement les séquences dont l'abondance>0, c'est-à-dire, les séquences réellement observées dans l'échantillon "Mock".
+
+sort(..., decreasing = TRUE)-->sort() trie les valeurs dans l'ordre croissant. En ajoutant decreasing = TRUE, les séquences sont triées par ordre décroissant, de l'abondance la plus élevée à la plus faible.
+```{r}
+unqs.mock <- sort(unqs.mock[unqs.mock>0], decreasing=TRUE)
+```
+cat()-->concaténer et afficher des éléments. Ici, elle affiche un message comprenant du texte et une valeur calculée.
+
+length(unqs.mock-->renvoie le nombre d'éléments dans l'objet unqs.mock. Cela correspond au nombre de séquences uniques présentes dans l'échantillon "Mock", après avoir appliqué le tri et la suppression des séquences avec une abondance de zéro.
+
+```{r}
+cat("DADA2 inferred", length(unqs.mock), "sample sequences present in the Mock community.\n")
 
 ```
+Extrait les séquences de référence à partir d'un fichier FASTA pour l'échantillon "Mock" et les stocke dans l'objet mock.ref
+
+```{r}
+mock.ref <- getSequences(file.path(path, "HMP_MOCK.v35.fasta"))
+```
+Comparer les séquences inférées dans l'échantillon "Mock" avec les séquences de référence et compter combien d'entre elles correspondent à celles présentes dans le fichier de référence (mock.ref)
+```{r}
+match.ref <- sum(sapply(names(unqs.mock), function(x) any(grepl(x, mock.ref))))
+```
+```{r}
+cat("Of those,", sum(match.ref), "were exact matches to the expected reference sequences.\n")
+```
+
+
+
 
 
 
