@@ -251,9 +251,9 @@ Comparer les séquences inférées dans l'échantillon "Mock" avec les séquence
 match.ref <- sum(sapply(names(unqs.mock), function(x) any(grepl(x, mock.ref))))
 ```
 ```{r}
-cat("Of those,", sum(match.ref), "were exact matches to the expected reference sequences.\n")
+cat("Of those,", match.ref, "were exact matches to the expected reference sequences.\n")
 ```
-
+On a bien 20/20 en correspondance avec l'echantillon de reference mock, ce qui signifie qu'aucune erreure majeur dans le sequencage ni dans le pipeline dada2 n'est a declaré.
 
 
 
