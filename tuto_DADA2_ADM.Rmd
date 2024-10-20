@@ -2,35 +2,46 @@
 title: "R Notebook"
 output: github_document
 ---
-TUTORIEL DADA2
+# TUTORIEL DADA2
 
 
 https://benjjneb.github.io/dada2/tutorial.html#:~:text=Here%20we%20walk%20through%20version%201.16%20of%20the%20DADA2%20pipeline
 library()
 
-1)GETTING READY
+## 1) GETTING READY
+
+### Importations des séquences fast.q dans un objet path
 
 Ici, j'appelle le package dada2
 Je met mon dossier "MiSeq_SOP" dans une variable "path"
 Ce qui me permet de lister les fichier contenu dans "path" et donc dans "miSeq_SOP"
+
 ```{r}
 library(dada2); packageVersion("dada2")
 path<-"/home/rstudio/DADA2_tutorial_ADM/MiSeq_SOP"
 list.files(path)
 ```
-Je stock dans les variables "fnFs" et "fnRs" respectivement l'ensemble des fichiers contenants "_R1_" et "_R2_" dans leur nom, c'est à dire les sequences forward et reverse.
+
+### Séparation et tris des reverses et forwards
+
+Je stock dans les variables "fnFs" et "fnRs", respectivement l'ensemble des fichiers contenants "_R1_" et "_R2_" dans leur nom, c'est à dire les sequences forward et reverse.
+
+#### explication du code
 
 full.names=TRUE --> tout le chemin et pas que le nom du fichier
 pattern="xxxx"-->les fichiers dont le nom contient "xxxx"
 path-->on va chercher les fichiers dans la variable "path" (qui contient les fichiers du dossier MiSeq_SOP)
 list.files-->lister les fichiers
 sort-->par ordre alphabetique
+
 ```{r}
 fnFs<-sort(list.files(path, pattern="_R1_", full.names=TRUE))
 fnRs<-sort(list.files(path, pattern="_R2_", full.names=TRUE))
 fnRs
 fnFs
 ```
+### renommer les sequences dans sample.names 
+
 strsplit-->separe un nom
 basename(file)-->renvoie au nom du fichier et non pas du chemin
 split"_"--> sépare le fichier en un vecteur contenant toutes les portions de noms entre les "_"
@@ -43,7 +54,9 @@ FUN='['--> applique la fonction à un vecteur
 sample.names<-sapply(strsplit(basename(fnFs),split="_"), FUN='[', 1)
 sample.names
 ```
-2)INSPECT READ QUALITY PROFILES
+## 2) INSPECT READ QUALITY PROFILES
+
+### verifier la qualité des séquences
 
 plotQualityProfile-->fait apparaitre un graphe avec en y une heatmap de la fréquence de chaque quality score et en x la position de chaque nucléotide.
 
@@ -53,12 +66,14 @@ On remarque que le quality score moyen (en vert) diminue au fur et à mesure car
 plotQualityProfile(fnFs [c(1, 10, 20)])
 plotQualityProfile(fnRs[c(3, 9, 18)])
 ```
-3) FILTER AND TRIM
+## 3) FILTER AND TRIM
+
+### Création d'un dossier filtered contenant les fichiers prêt pour filtration
 
 file.path()-->créer un chemin de fichier
 path-->contient le dossier où se trouve les fichiers d'interet
 "filtered"-->ajoute un dossier "filtered" à ce chemin
-paste0()-->faire un collage entre le vecteur sample.names_F et le suffixe "_F_filt.fastq.gz"
+paste0()-->faire un collage entre le vecteur sample.names et le suffixe "_F_filt.fastq.gz" (sequences forwards) et "R_filt.fastq.gz" (séquences reverses).
 
 ```{r}
 filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
@@ -66,7 +81,9 @@ filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 filtFs
 filtRs
 ```
-Ici, je viens stocker dans les fichiers filtFs et filtRs mes échantillons fnFs et fnRs une fois ceux-ci filtrés et tronqués (et filtré) par la fonction filterAndtrim() comme ceci :
+### filtration et troncation
+
+Ici, je viens stocker filtFs et filtRs, mes échantillons fnFs et fnRs une fois ceux-ci filtrés et tronqués par la fonction filterAndtrim(), puis je les mets dans un objet "out" comme ceci :
 
 trunclen=c(240,160)--> seq tronquées après 240 (forward) et 160 (reverse) nucleotides
 maxN=0--> toute seq contenant au moins une base N (ambigue) sera éliminée.
@@ -82,8 +99,15 @@ out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160),
               compress=TRUE, multithread=TRUE)
 head(out)
 ```
-4) LEARN THE ERRORS RATES
+## 4) LEARN THE ERRORS RATES
 
+### Modèle d'erreures
+
+Lors du séquençage de l'ADN, il y a des erreurs aléatoires (mutations de nucléotides) qui peuvent se produire. Si on ne tient pas compte de ces erreurs, on risque de confondre des erreurs techniques avec de véritables variantes dans les séquences. DADA2 modélise ces erreurs pour corriger et identifier les séquences réelles présentes dans l'échantillon.
+
+La fonction learnErrors ajuste un modèle statistique qui décrit la probabilité qu'un nucléotide soit incorrectement séquencé en fonction de la qualité de la base (souvent mesurée par un score de qualité Q, https://en.wikipedia.org/wiki/Phred_quality_score). Plus précisément, elle modélise la probabilité d'observer une séquence erronée étant donné les données de qualité associées à chaque base.
+
+#### Détail du code
 learnErrors()-->modélise les probabilités d'erreurs.
 plotErrors-->afficher les taux d'erreurs observé à partir des données réelles (POINTS NOIRS)
              le taux d'erreurs estimé par learnErrors()(LIGNE NOIRE)
@@ -95,10 +119,10 @@ errR <- learnErrors(filtRs, multithread=TRUE)
 plotErrors(errF, nominalQ=TRUE)
 plotErrors(errR, nominalQ=TRUE)
 ```
-5) SAMPLE INFERENCE
+## 5) SAMPLE INFERENCE
 
 Ici, j'applique l'algo dada à mes échantillons de bonnes qualités filtFs, avec err=errF indiquant que mon modèle d'erreur est errF.
-L'algorithme dada permet de differencier les differences de sequences dûent à des variations d'origine biologique ou à celles issue d'erreures de séquençage. (cf CM APO).
+L'algorithme dada permet de differencier les differences de sequences dûent à des variations d'origine biologique ou à celles issue d'erreures de séquençage.
 ```{r}
 dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
 dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
@@ -110,7 +134,11 @@ dadaFs[[1]]
 ```{r}
 help("dada-class")
 ```
-6) MERGE PAIRED READS
+## 6) MERGE PAIRED READS
+
+La fonction mergePairs permet de réaliser l'alignement des séquences forward et reverse en fusionnant ces deux lectures pour obtenir la séquence complète cible. Une séquence fusionnée n'est conservée que si la région de chevauchement entre les deux lectures est parfaitement identique et comprend au moins 12 bases (ce seuil peut être ajusté). Dans cet exemple, le data.frame indique que le premier échantillon contient 127 séquences uniques, soit une variante de moins que lors de l'étape précédente, et affiche également l'abondance de chaque séquence dans l'échantillon
+
+#### détail du code
 
 mergePairs()--> permet la fusion des forwards et reverses après le débruitage.
 il faut lui préciser dadaFs puis filtFs pour lui dire le chemin d'accès.
@@ -126,7 +154,7 @@ Informations sur les erreurs : Si des paires de séquences ne parviennent pas à
 mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 head(mergers[[1]])
 ```
-7) CONSTRUCT SEQUENCE TABLE
+## 7) CONSTRUCT SEQUENCE TABLE
 
 makeSequenceTable()--> Elle prend les résultats de la fusion des lectures (comme dans mergers) et produit une matrice dans laquelle :
 Chaque ligne correspond à un échantillon.
@@ -149,10 +177,10 @@ Chaque nom de colonne correspond à une longueur spécifique.
 ```{r}
 table(nchar(getSequences(seqtab)))
 ```
-8) REMOVE CHIMERAS
+## 8) REMOVE CHIMERAS
 
 removeBimeraDenovo() :
-Identifie et retire les séquences chimériques dans la table de séquences. Les chimères se forment lorsqu'un fragment d'ADN est mal répliqué pendant la PCR, donnant une séquence hybride entre deux séquences existantes.
+Identifie et retire les séquences chimériques dans la table de séquences. Les chimères se forment lorsqu'un fragment d'ADN est mal répliqué pendant la PCR, donnant une séquence hybride entre deux séquences existantes, dûe à la partie conservée.
 
 Arguments :
 
@@ -166,7 +194,8 @@ Calcul de la proportion des séquences non chimériques par rapport au total des
 ```{r}
 sum(seqtab.nochim)/sum(seqtab)
 ```
-9) TRACK READS THROUGH THE PIPELINE
+## 9) TRACK READS THROUGH THE PIPELINE
+
 Je definis une fonction getN avec function(x), x sera le paramètre d'entrée.
 sun(getUniques(x))-->additionne toute les occurences des sequences uniques obtenues grâce à getUniques(x)
 On compte donc le nombre de sequences uniques.
@@ -174,7 +203,7 @@ On compte donc le nombre de sequences uniques.
 ```{r}
 getN <- function(x) sum(getUniques(x))
 ```
-Création d'une matrice track qui contient une colonne pour chaque étape du pipeline, chaque ligne est un echantillon.
+### Création d'une matrice track qui contient une colonne pour chaque étape du pipeline, chaque ligne est un echantillon.
 
 cbind()-->combine des objets par colonne, prend plusieurs vecteurs ou matrices et les met côte à côte pour créer une nouvelle matrice avec le même nombre de lignes.
 
@@ -195,10 +224,10 @@ head(track)
 ```
 Une bonne portion des inputs ont passés les differentes étapes de filtration, ce qui veut dire que mes paramètres de tris ne sont pas trop strictes.
 
-10) ASSIGN TAXONOMY
+## 10) ASSIGN TAXONOMY
 
 
-assignTaxonomy()-->attribue une classification taxonomique à seqtab.nochim en se basant sur une base de données de référence, ici SILVA 132
+### assignTaxonomy()-->attribue une classification taxonomique à seqtab.nochim en se basant sur une base de données de référence, ici SILVA 132
 ```{r}
 taxa <- assignTaxonomy(seqtab.nochim, "/home/rstudio/tutoDada2/silva_nr_v132_train_set.fa.gz", multithread=TRUE)
 ```
@@ -215,9 +244,9 @@ taxa.print <- taxa
 rownames(taxa.print) <- NULL
 head(taxa.print)
 ```
-11) EVALUATE ACCURACY
+## 11) EVALUATE ACCURACY
 
-Évaluation de la précision de DADA2 sur la communauté fictive
+### Évaluation de la précision de DADA2 sur la communauté fictive
 
 seqtab.nochim["Mock",]-->extrait les sequences associées à l'échantillon de reference Mock dans seqtab.nochim
 , indique que je prend toutes les colonnes (toutes les séquences associées à cet échantillon).
@@ -225,7 +254,7 @@ seqtab.nochim["Mock",]-->extrait les sequences associées à l'échantillon de r
 unqs.mock <- seqtab.nochim["Mock_F_filt.fastq.gz",]
 ```
 
-Trie les séquences de l'échantillon "Mock" par ordre décroissant de leur abondance, après avoir filtré les séquences avec une abondance supérieure à zéro : 
+### Trie les séquences de l'échantillon "Mock" par ordre décroissant de leur abondance, après avoir filtré les séquences avec une abondance supérieure à zéro : 
 
 unqs.mock[unqs.mock > 0]-->sélectionne uniquement les séquences dont l'abondance>0, c'est-à-dire, les séquences réellement observées dans l'échantillon "Mock".
 
@@ -241,7 +270,7 @@ length(unqs.mock-->renvoie le nombre d'éléments dans l'objet unqs.mock. Cela c
 cat("DADA2 inferred", length(unqs.mock), "sample sequences present in the Mock community.\n")
 
 ```
-Extrait les séquences de référence à partir d'un fichier FASTA pour l'échantillon "Mock" et les stocke dans l'objet mock.ref
+### Extrait les séquences de référence à partir d'un fichier FASTA pour l'échantillon "Mock" et les stocke dans l'objet mock.ref
 
 ```{r}
 mock.ref <- getSequences(file.path(path, "HMP_MOCK.v35.fasta"))
@@ -253,7 +282,7 @@ match.ref <- sum(sapply(names(unqs.mock), function(x) any(grepl(x, mock.ref))))
 ```{r}
 cat("Of those,", match.ref, "were exact matches to the expected reference sequences.\n")
 ```
-On a bien 20/20 en correspondance avec l'echantillon de reference mock, ce qui signifie qu'aucune erreure majeur dans le sequencage ni dans le pipeline dada2 n'est a declaré.
+On a bien 20/20 en correspondance avec l'echantillon de reference mock, ce qui signifie qu'aucune erreure majeure dans le sequencage ni dans le pipeline dada2 n'est a declarer.
 
 
 
